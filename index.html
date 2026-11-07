@@ -1,0 +1,749 @@
+<title>Berührungs-Detektive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Fredoka:wght@500;600;700&display=swap">
+<style>
+/* Layout: ScratchJr-Editor im Kleinen – Bühne links, Programme rechts, blaue Blockleiste unten.
+   Einzelnes helles Thema wie die echte App, alle Farben explizit gesetzt. */
+:root {
+  --paper: #f3eee2;        /* ScratchJr-Arbeitsfläche */
+  --paper-edge: #e3dac6;
+  --card: #ffffff;
+  --ink: #2b3a4a;
+  --ink-soft: #6b7a8a;
+  --bar: #4a86c5;          /* blaue Blockleiste */
+  --bar-dark: #2f6aa8;
+  --flag: #4fb36a;
+  --sun: #f7a23b;          /* Kater-Orange als Akzent */
+  --ok: #3cae5c;
+  --bad: #e2574c;
+  --font-display: 'Fredoka', 'Andika', system-ui, sans-serif;
+  --font-body: 'Andika', 'Verdana', system-ui, sans-serif;
+  --bz: 0.95;              /* Blockgröße */
+  color-scheme: light;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 18px;
+  -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+button { font-family: inherit; color: inherit; }
+img { -webkit-user-drag: none; }
+.app { min-height: 100%; display: flex; flex-direction: column; gap: 12px; padding-inline: 16px; padding-block: 12px 18px; max-width: 1280px; margin: 0 auto; }
+
+/* Kopfzeile */
+.top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 26px; color: var(--bar-dark); display: flex; align-items: center; gap: 8px; }
+.brand img { height: 40px; }
+.dots { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.dot { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--paper-edge); background: var(--card);
+  font-family: var(--font-display); font-weight: 600; font-size: 18px; cursor: pointer; display: grid; place-items: center; }
+.dot.done { background: var(--ok); border-color: var(--ok); color: #fff; }
+.dot.cur { border-color: var(--sun); box-shadow: 0 0 0 3px #fbd29a; }
+.dot:focus-visible, .big:focus-visible, .pal-block:focus-visible { outline: 3px solid var(--bar-dark); outline-offset: 3px; }
+
+/* Aufgabe */
+.task { display: flex; align-items: flex-start; gap: 14px; background: var(--card); border: 3px solid var(--paper-edge); border-radius: 18px; padding: 10px 14px; }
+.task .num { font-family: var(--font-display); font-weight: 700; font-size: 30px; width: 52px; height: 52px; flex: none; border-radius: 50%; background: var(--sun); color: #fff; display: grid; place-items: center; }
+.task h1 { font-family: var(--font-display); font-weight: 600; font-size: 24px; margin: 0; line-height: 1.15; }
+.task p { margin: 2px 0 0; font-size: 20px; line-height: 1.3; }
+.task .txt { flex: 1; min-width: 0; }
+.steps { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; counter-reset: st; }
+.steps li { counter-increment: st; display: flex; align-items: center; gap: 8px; font-size: 19px; line-height: 1.3; flex-wrap: wrap; }
+.steps li::before { content: counter(st); flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--bar); color: #fff;
+  font-family: var(--font-display); font-weight: 600; font-size: 17px; display: grid; place-items: center; }
+.steps .ic { height: 34px; width: auto; vertical-align: middle; max-width: none; }
+.steps .mini { display: inline-block; zoom: 0.5; vertical-align: middle; margin: 0 4px; }
+.steps .mini .blk { height: 66px; }
+.steps .mini .pill, .steps .mini .drop { display: none; }
+.steps .ic.drop { height: 22px; }
+
+/* Arbeitsbereich */
+.work { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.left { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.stagebox { position: relative; width: 100%; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden; border: 4px solid #fff; box-shadow: 0 0 0 2px var(--paper-edge); background: #cfe9f7; }
+.stage { position: absolute; left: 0; top: 0; width: 480px; height: 360px; transform-origin: 0 0; }
+.stage .bg { position: absolute; inset: 0; width: 480px; height: 360px; max-width: none; }
+.spr { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; transition: opacity .18s linear; cursor: default; }
+.spr img { width: 100%; height: 100%; display: block; max-width: none; pointer-events: none; }
+.spr.tap { cursor: pointer; }
+.spr.tap::after { content: ''; position: absolute; inset: -6px; border-radius: 16px; }
+.bubble { position: absolute; background: #2aa6dd; color: #fff; font-family: var(--font-body); font-weight: 700; font-size: 15px; line-height: 1.15;
+  padding: 6px 10px; border-radius: 10px; white-space: nowrap; transform: translate(-50%, -100%); pointer-events: none; z-index: 50; }
+.bubble::after { content: ''; position: absolute; left: 50%; bottom: -8px; margin-left: -8px; border: 8px solid transparent; border-top-color: #2aa6dd; border-bottom: 0; }
+.flyletter { position: absolute; width: 60px; height: 52px; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); }
+.flyletter img { width: 100%; height: 100%; max-width: none; }
+
+.controls { display: flex; gap: 12px; align-items: center; }
+.big { border: none; border-radius: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 600; font-size: 22px; min-height: 64px; padding: 0 18px; }
+.go { background: var(--card); box-shadow: inset 0 0 0 3px var(--paper-edge); }
+.go img { height: 50px; }
+.go.hide { display: none; }
+.stop { background: var(--card); box-shadow: inset 0 0 0 3px var(--paper-edge); }
+.stop svg { width: 36px; height: 36px; }
+.hint-tap { margin-left: auto; font-size: 17px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
+
+/* Programme */
+.right { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.scripts { background: var(--card); border-radius: 14px; border: 3px solid var(--paper-edge); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.srow { display: flex; gap: 10px; align-items: flex-start; padding: 6px; border-radius: 12px; }
+.srow + .srow { border-top: 2px dashed #ece5d4; border-radius: 0; }
+.who { width: 66px; flex: none; text-align: center; font-weight: 700; font-size: 14px; color: var(--ink-soft); }
+.who img { width: 56px; height: 56px; object-fit: contain; display: block; margin: 0 auto 2px; max-width: none; }
+.strips { display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow-x: auto; padding: 2px 4px 4px; }
+.strip { zoom: var(--bz); display: flex; align-items: flex-start; padding: 4px 6px 2px 2px; border-radius: 16px; width: max-content; }
+.strip.choosable { cursor: pointer; box-shadow: inset 0 0 0 4px #e3e8ee; background: #fafbfc; }
+.strip.choosable.chosen { box-shadow: inset 0 0 0 5px var(--ok); background: #eaf7ee; }
+.strip.choosable.chosen::after { content: '✓'; font-family: var(--font-display); font-size: 40px; color: var(--ok); align-self: center; margin-left: 10px; }
+.strip.inactive { opacity: .55; }
+
+/* Blöcke (echte ScratchJr-Formen: 76×66, Startblöcke 85×66, 12 px Überlappung) */
+.blk { position: relative; width: 76px; height: 84px; flex: none; }
+.blk + .blk { margin-left: -12px; }
+.blk.hat { width: 85px; }
+.blk > img.shape, .blk > img.icon { position: absolute; left: 0; top: 0; width: 100%; height: 66px; max-width: none; pointer-events: none; }
+.blk .pill { position: absolute; left: 14px; top: 55px; min-width: 48px; height: 24px; padding: 0 6px; border: 2px solid #c0c2c3; border-radius: 12px;
+  background: #fff; color: #77787b; font: 15px/20px Verdana, sans-serif; text-align: center; white-space: nowrap; max-width: 64px; overflow: hidden; text-overflow: ellipsis; }
+.blk .drop { position: absolute; left: 10px; top: 56px; width: 48px; height: 27px; max-width: none; }
+.blk.hat .drop { left: 20px; }
+.blk .drop.edit { cursor: pointer; animation: wiggle 1.6s ease-in-out infinite; filter: drop-shadow(0 0 4px #ff9d00); }
+.blk.run > img.shape { filter: brightness(1.25) drop-shadow(0 0 6px #fff59a); }
+.blk.slot { border: 4px dashed #9fb3c8; border-radius: 14px; height: 66px; width: 70px; background: rgba(255,255,255,.6); margin-right: 6px; }
+.blk.slot + .blk, .blk + .blk.slot { margin-left: 2px; }
+.blk.slot.next { border-color: var(--sun); background: #fff4e3; }
+.blk.placed { cursor: pointer; }
+.blk.buggy > img.shape { filter: drop-shadow(0 0 0 #e2574c) drop-shadow(0 0 5px #e2574c); }
+.blk.buggy { animation: wiggle 1.6s ease-in-out infinite; }
+.count { display: flex; gap: 4px; margin-left: 6px; }
+.count img { height: 40px; filter: grayscale(1) opacity(.35); }
+.count img.got { filter: none; animation: pop .4s cubic-bezier(.2,1.6,.4,1) both; }
+.start .big-mini { zoom: 1.1; }
+.hintpulse { animation: hint 1s ease-in-out 3; border-radius: 14px; }
+
+/* Blockleiste */
+.palette { background: var(--bar); border-radius: 14px; padding: 10px 12px 6px; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: flex-start; }
+.palette .label { width: 100%; color: #fff; font-family: var(--font-display); font-weight: 600; font-size: 18px; margin-bottom: 2px; }
+.pal-block { zoom: var(--bz); background: none; border: none; padding: 0; cursor: pointer; border-radius: 12px; }
+.pal-block.used { opacity: .3; pointer-events: none; }
+
+/* Farbauswahl */
+.pop { position: fixed; z-index: 200; background: var(--card); border-radius: 18px; padding: 10px; display: grid; grid-template-columns: repeat(3, 76px); gap: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25), 0 0 0 3px var(--paper-edge); }
+.pop button { width: 76px; height: 66px; border: none; border-radius: 12px; background: #f3f5f8; cursor: pointer; padding: 0; }
+.pop button img { width: 100%; height: 100%; max-width: none; }
+
+/* Rückmeldung */
+.overlay { position: fixed; inset: 0; z-index: 300; background: rgba(43,58,74,.55); display: grid; place-items: center; padding: 16px; }
+.card { background: var(--card); border-radius: 28px; padding: 22px 20px; text-align: center; max-width: 520px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.card h2 { font-family: var(--font-display); font-weight: 700; font-size: 44px; margin: 6px 0; }
+.card p { font-size: 22px; margin: 6px 0 16px; }
+.stars { font-size: 64px; letter-spacing: 8px; color: var(--sun); }
+.stars span { display: inline-block; animation: pop .5s cubic-bezier(.2,1.6,.4,1) both; }
+.stars span:nth-child(2) { animation-delay: .15s; } .stars span:nth-child(3) { animation-delay: .3s; }
+.card .big { margin: 0 auto; background: var(--ok); color: #fff; font-size: 26px; padding: 0 30px; }
+.card .big.again { background: var(--sun); }
+.card img.hero { height: 120px; }
+.bug { font-size: 70px; display: inline-block; animation: wiggle 1s ease-in-out infinite; }
+
+.start { min-height: 100%; display: grid; place-items: center; padding-inline: 16px; padding-block: 24px; }
+.start .card { max-width: 640px; }
+.start h2 { font-size: 54px; color: var(--bar-dark); }
+.start .row { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 8px 0 18px; }
+.start .row img { height: 90px; }
+
+@keyframes pulse { 50% { transform: scale(1.08); } }
+@keyframes wiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
+@keyframes hint { 50% { box-shadow: 0 0 0 8px #ffb14a; } }
+@keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; } }
+
+@media (max-width: 1100px) { :root { --bz: 0.8; } }
+@media (max-width: 820px) {
+  .work { grid-template-columns: minmax(0, 1fr); }
+  :root { --bz: 0.7; }
+  .task h1 { font-size: 21px; } .task p { font-size: 18px; }
+}
+@media (max-width: 480px) { .brand span { display: none; } .dot { width: 34px; height: 34px; font-size: 16px; } }
+</style>
+
+<div id="root"></div>
+
+<script>
+(() => {
+'use strict';
+const A = 'assets/';
+const COLORS = ['Orange', 'Red', 'Yellow', 'Green', 'Blue', 'Purple'];
+const COLOR_DE = { Orange: 'orange', Red: 'rot', Yellow: 'gelb', Green: 'grün', Blue: 'blau', Purple: 'lila' };
+const HATS = new Set(['onflag', 'onclick', 'ontouch', 'onmessage']);
+const SHAPE = { onflag: 'start', onclick: 'start', ontouch: 'start', onmessage: 'start', message: 'yellowCmd',
+  forward: 'blueCmd', back: 'blueCmd', up: 'blueCmd', down: 'blueCmd', hop: 'blueCmd', home: 'blueCmd',
+  wait: 'flow', setspeed: 'flow', stopmine: 'flow', say: 'looks', show: 'looks', hide: 'looks', grow: 'looks', shrink: 'looks', forever: 'endshort' };
+const ICON = { onflag: 'greenFlag', onclick: 'OnTouch', ontouch: 'Bump', stopmine: 'Stop', forward: 'Foward', back: 'Back', up: 'Up', down: 'Down', hop: 'Hop',
+  home: 'Home', wait: 'Wait', say: 'Say', show: 'Appear', hide: 'Disappear', grow: 'Grow', shrink: 'Shrink', forever: 'Forever' };
+const NUMARG = new Set(['forward', 'back', 'up', 'down', 'hop', 'wait', 'grow', 'shrink']);
+const iconFor = b => b.op === 'onmessage' ? `LetterGet_${b.arg}` : b.op === 'message' ? `LetterSend_${b.arg}`
+  : b.op === 'setspeed' ? `speed${b.arg}` : ICON[b.op];
+const SIZE = { Kater: [180, 170], Apple: [112, 132], Boy1: [138, 311], Soccerball: [96, 96], SoccerNet: [219, 399],
+  Grandmother: [149, 407], Links: [100, 100], Rechts: [100, 100] };
+
+// Blockkurzschrift: ['forward', 3]
+const B = (op, arg, extra) => Object.assign({ op, arg }, extra || {});
+const S = (...blocks) => blocks.map(b => Array.isArray(b) ? B(b[0], b[1], b[2]) : b);
+
+// ---------------- Level ----------------
+const LEVELS = [
+  { title: 'Der Torschuss', steps: ['Drück die grüne Fahne {flag}.', 'Schau zu: Der Kater berührt den Ball. Dann startet das Programm vom Ball {bump}.'],
+    bg: 'Park', flag: true,
+    sprites: [
+      { id: 'tor', name: 'Tor', img: 'SoccerNet', x: 425, y: 245, s: 0.42, scripts: [] },
+      { id: 'kater', name: 'Kater', img: 'Kater', x: 70, y: 292, s: 0.45,
+        scripts: [S(['onflag'], ['forward', 6])] },
+      { id: 'ball', name: 'Ball', img: 'Soccerball', x: 200, y: 308, s: 0.4,
+        scripts: [S(['ontouch'], ['forward', 8], ['say', 'Tor!'])] },
+    ],
+    order: ['kater', 'ball'], win: 'Tor! Der Ball wurde berührt.',
+    goal: ev => ev.type === 'start' && ev.sprite === 'ball' && ev.hat === 'ontouch' },
+
+  { title: 'Welches Programm?', steps: ['Der Ball soll erst rollen, wenn der Kater ihn berührt {bump}.', 'Tippe das richtige Programm vom Ball an.', 'Drück die Fahne {flag}.'],
+    bg: 'Park', flag: true, choose: true,
+    sprites: [
+      { id: 'tor', name: 'Tor', img: 'SoccerNet', x: 425, y: 245, s: 0.42, scripts: [] },
+      { id: 'kater', name: 'Kater', img: 'Kater', x: 70, y: 292, s: 0.45,
+        scripts: [S(['onflag'], ['forward', 6])] },
+      { id: 'ball', name: 'Ball', img: 'Soccerball', x: 200, y: 308, s: 0.4, choose: true,
+        scripts: [
+          S(['onflag'], ['forward', 8]),
+          S(['onclick'], ['hop', 2]),
+          S(['ontouch'], ['forward', 8]),
+        ] },
+    ],
+    order: ['kater', 'ball'], hint: '[data-sprite="ball"]', win: 'Tor!',
+    check: rt => rt.hats.has('ball:ontouch') && sameSet(rt.chosen.ball, [2]) },
+
+  { title: 'Der Startblock fehlt', steps: ['Mark läuft zum Apfel. Der Apfel soll dann verschwinden {hide}.', 'Beim Apfel fehlt der Startblock. Tippe unten in der blauen Leiste auf den richtigen Block.', 'Drück die Fahne {flag}.'],
+    bg: 'Fall', flag: true,
+    sprites: [
+      { id: 'apfel', name: 'Apfel', img: 'Apple', x: 290, y: 292, s: 0.3,
+        scripts: [S({ slot: true }, ['hide'])] },
+      { id: 'mark', name: 'Mark', img: 'Boy1', x: 80, y: 262, s: 0.4,
+        scripts: [S(['onflag'], ['forward', 9])] },
+    ],
+    order: ['mark', 'apfel'],
+    palette: S(['onflag'], ['onclick'], ['ontouch'], ['onmessage', 'Red']),
+    hint: '.palette', win: 'Mark hat den Apfel gepflückt.',
+    goal: ev => ev.type === 'start' && ev.sprite === 'apfel' && ev.hat === 'ontouch' },
+
+  { title: 'Oma sagt Danke', steps: ['Mark läuft zu Oma. Wenn Mark Oma berührt {bump}, soll Oma „Danke!“ sagen.', 'Drück die Fahne {flag}. Oma sagt nichts!', 'Bei Oma ist der falsche Startblock. Tippe ihn an. Dann tippe unten auf den richtigen Block.', 'Drück wieder die Fahne {flag}.'], bugIcon: true,
+    bg: 'Fall', flag: true,
+    sprites: [
+      { id: 'oma', name: 'Oma', img: 'Grandmother', x: 330, y: 255, s: 0.33,
+        scripts: [S(['onclick', null, { placed: true, palIdx: 0, bug: true }], ['say', 'Danke, Mark!'])] },
+      { id: 'mark', name: 'Mark', img: 'Boy1', x: 80, y: 262, s: 0.4,
+        scripts: [S(['onflag'], ['forward', 9])] },
+    ],
+    order: ['mark', 'oma'],
+    palette: S(['onclick'], ['onflag'], ['ontouch'], ['onmessage', 'Orange']),
+    hint: '.blk.placed, .palette', win: 'Oma freut sich.',
+    goal: ev => ev.type === 'start' && ev.sprite === 'oma' && ev.hat === 'ontouch' },
+
+  { title: 'Der Apfel kommt zurück', steps: ['Mark pflückt den Apfel {bump}. Dann soll der Apfel wieder am Baum hängen.', 'Baue für den Apfel: verschwinden {hide} + zurück zum Start {home} + erscheinen {show}.', 'Drück die Fahne {flag}.'],
+    bg: 'Fall', flag: true,
+    sprites: [
+      { id: 'apfel', name: 'Apfel', img: 'Apple', x: 300, y: 60, s: 0.3,
+        scripts: [S(['onflag'], ['down', 9]), S(['ontouch'], { slot: true }, { slot: true }, { slot: true })] },
+      { id: 'mark', name: 'Mark', img: 'Boy1', x: 80, y: 262, s: 0.4,
+        scripts: [S(['onflag'], ['wait', 20], ['forward', 9])] },
+    ],
+    order: ['mark', 'apfel'],
+    palette: S(['show'], ['hop', 2], ['hide'], ['home']),
+    hint: '.palette', win: 'Der Apfel hängt wieder am Baum.',
+    check: rt => rt.hats.has('apfel:ontouch') && matches(rt.level.sprites[0].scripts[1], [['ontouch'], ['hide'], ['home'], ['show']]) },
+
+  { title: 'Fang den Apfel', steps: ['Drück die Fahne {flag}. Der Apfel fällt.', 'Tippe auf die Pfeile {links} {rechts} auf der Bühne. So läuft Mark.', 'Lauf mit Mark zum Apfel und berühre ihn {bump}.'],
+    bg: 'Fall', flag: true, free: true, tapHint: true,
+    sprites: [
+      { id: 'mark', name: 'Mark', img: 'Boy1', x: 110, y: 262, s: 0.4,
+        scripts: [S(['onmessage', 'Green'], ['back', 1]), S(['onmessage', 'Orange'], ['forward', 1])] },
+      { id: 'apfel', name: 'Apfel', img: 'Apple', x: 330, y: 60, s: 0.3,
+        scripts: [S(['onflag'], ['down', 9]), S(['ontouch'], ['hide'])] },
+      { id: 'links', name: 'Links', img: 'Links', x: 38, y: 322, s: 0.6, scripts: [S(['onclick'], ['message', 'Green'])] },
+      { id: 'rechts', name: 'Rechts', img: 'Rechts', x: 442, y: 322, s: 0.6, scripts: [S(['onclick'], ['message', 'Orange'])] },
+    ],
+    order: ['links', 'rechts', 'mark', 'apfel'],
+    hint: '[data-sprite="rechts"]', win: 'Gefangen!',
+    goal: ev => ev.type === 'start' && ev.sprite === 'apfel' && ev.hat === 'ontouch' },
+
+  { title: 'Die richtigen Programme', steps: ['Links {links} schickt {send:Green}. Rechts {rechts} schickt {send:Orange}.', 'Tippe die 2 richtigen Programme von Mark an: links {back} und rechts {forward}.', 'Drück die Fahne {flag} und fang den Apfel.'],
+    bg: 'Fall', flag: true, free: true, choose: true, tapHint: true,
+    sprites: [
+      { id: 'mark', name: 'Mark', img: 'Boy1', x: 360, y: 262, s: 0.4, choose: true,
+        scripts: [
+          S(['onmessage', 'Green'], ['forward', 1]),
+          S(['onmessage', 'Orange'], ['forward', 1]),
+          S(['onmessage', 'Green'], ['back', 1]),
+          S(['onmessage', 'Orange'], ['up', 1]),
+        ] },
+      { id: 'apfel', name: 'Apfel', img: 'Apple', x: 200, y: 60, s: 0.3,
+        scripts: [S(['onflag'], ['down', 9]), S(['ontouch'], ['hide'])] },
+      { id: 'links', name: 'Links', img: 'Links', x: 38, y: 322, s: 0.6, scripts: [S(['onclick'], ['message', 'Green'])] },
+      { id: 'rechts', name: 'Rechts', img: 'Rechts', x: 442, y: 322, s: 0.6, scripts: [S(['onclick'], ['message', 'Orange'])] },
+    ],
+    order: ['links', 'rechts', 'mark', 'apfel'],
+    hint: '[data-sprite="mark"]', win: 'Gefangen!',
+    goal: (ev, rt) => ev.type === 'start' && ev.sprite === 'apfel' && ev.hat === 'ontouch' && (sameSet(rt.chosen.mark, [1, 2]) || 'fail') },
+
+  { title: 'Apfelernte', steps: ['Drück die Fahne {flag}. Die Äpfel fallen.', 'Fang 3 Äpfel mit Mark! Lauf mit den Pfeilen {links} {rechts}.', 'Ein gefangener Apfel {bump} hängt wieder am Baum und fällt noch einmal.'],
+    bg: 'Fall', flag: true, free: true, tapHint: true, count: 3,
+    sprites: [
+      { id: 'mark', name: 'Mark', img: 'Boy1', x: 105, y: 262, s: 0.4,
+        scripts: [S(['onmessage', 'Green'], ['back', 1]), S(['onmessage', 'Orange'], ['forward', 1])] },
+      { id: 'apfel1', name: 'Apfel', img: 'Apple', x: 160, y: 50, s: 0.3,
+        scripts: [S(['onflag'], ['down', 10]), S(['ontouch'], ['stopmine'], ['hide'], ['home'], ['wait', 10], ['show'], ['down', 10])] },
+      { id: 'apfel2', name: 'Apfel', img: 'Apple', x: 270, y: 50, s: 0.3,
+        scripts: [S(['onflag'], ['wait', 15], ['down', 10]), S(['ontouch'], ['stopmine'], ['hide'], ['home'], ['wait', 15], ['show'], ['down', 10])] },
+      { id: 'apfel3', name: 'Apfel', img: 'Apple', x: 375, y: 50, s: 0.3,
+        scripts: [S(['onflag'], ['wait', 30], ['down', 10]), S(['ontouch'], ['stopmine'], ['hide'], ['home'], ['wait', 20], ['show'], ['down', 10])] },
+      { id: 'links', name: 'Links', img: 'Links', x: 38, y: 322, s: 0.6, scripts: [S(['onclick'], ['message', 'Green'])] },
+      { id: 'rechts', name: 'Rechts', img: 'Rechts', x: 442, y: 322, s: 0.6, scripts: [S(['onclick'], ['message', 'Orange'])] },
+    ],
+    order: ['links', 'rechts', 'mark', 'apfel1', 'apfel2', 'apfel3'],
+    hint: '[data-sprite="rechts"]', win: 'Oma hat jetzt genug Äpfel für einen Kuchen.',
+    goal: (ev, rt) => ev.type === 'start' && ev.hat === 'ontouch' && rt.touchCount >= 3 },
+];
+function sameSet(a, b) { return a.length === b.length && b.every(x => a.includes(x)); }
+function matches(script, want) {
+  return script.length === want.length && want.every(([op, arg], i) => script[i].op === op && (arg === undefined || script[i].arg == arg));
+}
+
+// ---------------- Hilfen ----------------
+const h = (tag, attrs, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === 'class') e.className = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(k));
+  return e;
+};
+const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const TICK = 32;
+const clone = o => JSON.parse(JSON.stringify(o));
+
+
+
+// ---------------- Blöcke zeichnen ----------------
+function blockEl(b, opts = {}) {
+  if (b.slot) return h('div', { class: 'blk slot' });
+  const hat = HATS.has(b.op);
+  const el = h('div', { class: 'blk' + (hat ? ' hat' : '') },
+    h('img', { class: 'shape', src: `${A}blocks/${SHAPE[b.op]}.svg`, alt: '' }),
+    h('img', { class: 'icon', src: `${A}icons/${iconFor(b)}.svg`, alt: '' }));
+  if (NUMARG.has(b.op)) el.append(h('div', { class: 'pill' }, String(b.arg)));
+  if (b.op === 'say') el.append(h('div', { class: 'pill', title: b.arg }, b.arg));
+  if (b.op === 'onmessage' || b.op === 'message' || b.op === 'setspeed') {
+    const d = h('img', { class: 'drop' + (b.edit ? ' edit' : ''), src: `${A}blocks/dropdown.svg`, alt: b.edit ? 'Farbe ändern' : '' });
+    if (b.edit && opts.onEdit) d.addEventListener('click', e => { e.stopPropagation(); opts.onEdit(b, d); });
+    el.append(d);
+  }
+  el.setAttribute('aria-label', blockName(b));
+  return el;
+}
+function blockName(b) {
+  const n = { onflag: 'Grüne Fahne', onclick: 'Antippen', ontouch: 'Berührung', stopmine: 'Stopp', onmessage: `Brief ${COLOR_DE[b.arg]} bekommen`, message: `Brief ${COLOR_DE[b.arg]} schicken`,
+    forward: 'Vorwärts', back: 'Zurück', up: 'Hoch', down: 'Runter', hop: 'Hüpfen', home: 'Zum Start', wait: 'Warten', say: 'Sagen',
+    show: 'Erscheinen', hide: 'Verschwinden', grow: 'Wachsen', shrink: 'Schrumpfen', forever: 'Für immer',
+    setspeed: ['Langsam', 'Normal', 'Schnell'][b.arg] };
+  return n[b.op] || b.op;
+}
+
+// ---------------- Laufzeit (vereinfachtes ScratchJr) ----------------
+class Runtime {
+  constructor(game) { this.g = game; this.gen = 0; this.active = 0; this.threads = new Map(); this.started = new Set(); this.hats = new Set(); this.touchCount = 0; this.flagRan = false; }
+  get level() { return this.g.level; }
+  stop() { this.gen++; this.threads.clear(); this.active = 0; this.g.clearRunMarks(); this.g.clearBubbles();
+    this.g.stageEl && this.g.stageEl.querySelectorAll('.flyletter').forEach(e => e.remove()); }
+  reset() { this.stop(); this.started = new Set(); this.hats = new Set(); this.touchCount = 0; this.flagRan = false; for (const sp of this.g.sprites) this.g.goHome(sp); this.watchTouch(); if (this.g.countEl) this.g.updateCount(); }
+  // Berührung wie in ScratchJr: läuft im Hintergrund; startet, sobald sich zwei sichtbare Figuren neu berühren
+  touching(a, b) {
+    if (!a.shown || !b.shown) return false;
+    return Math.abs(a.x - b.x) < (a.w * a.s + b.w * b.s) * 0.38 && Math.abs(a.y - b.y) < (a.h * a.s + b.h * b.s) * 0.38;
+  }
+  watchTouch() {
+    if (this.watchGen === this.gen) return;
+    const gen = this.watchGen = this.gen, prev = this.touchPrev = new Map();
+    const loop = async () => {
+      while (gen === this.gen) {
+        for (const sp of this.g.sprites) {
+          const list = this.scriptsOf(sp).filter(({ s }) => s[0].op === 'ontouch');
+          if (!list.length) continue;
+          const now = this.g.sprites.some(o => o !== sp && this.touching(sp, o));
+          const was = prev.get(sp); prev.set(sp, now);
+          if (now && !was) for (const { s, i } of list) if (!this.threads.has(sp.def.id + ':' + i)) this.run(sp, s, i);
+        }
+        await this.tick();
+      }
+    };
+    loop();
+  }
+  scriptsOf(sp) {
+    return sp.def.scripts.map((s, i) => ({ s, i })).filter(({ s, i }) => s.length && !s[0].slot && HATS.has(s[0].op)
+      && (!sp.def.choose || this.chosen[sp.def.id].includes(i)));
+  }
+  get chosen() { return this.g.chosen; }
+  flag() { this.reset(); this.flagRan = true; this.lastAction = 'flag'; this.trigger(sp => sp, s => s[0].op === 'onflag'); }
+  tap(sp) {
+    this.watchTouch();
+    const taps = this.scriptsOf(sp).filter(({ s }) => s[0].op === 'onclick');
+    if (!taps.length) return false;
+    if (this.level.free && taps.some(({ i }) => this.threads.has(sp.def.id + ':' + i))) return true; // Brief ist noch unterwegs
+    this.lastAction = 'tap'; this.trigger(x => x === sp ? x : null, s => s[0].op === 'onclick'); return true;
+  }
+  trigger(pickSprite, pickScript) {
+    const runs = [];
+    for (const sp of this.g.sprites) {
+      if (!pickSprite(sp)) continue;
+      for (const { s, i } of this.scriptsOf(sp)) if (pickScript(s)) runs.push(this.run(sp, s, i));
+    }
+    return Promise.all(runs);
+  }
+  async run(sp, script, idx) {
+    const key = sp.def.id + ':' + idx, token = { gen: this.gen };
+    this.threads.set(key, token);
+    const alive = () => token.gen === this.gen && this.threads.get(key) === token;
+    this.active++;
+    this.started.add(sp.def.id); this.hats.add(sp.def.id + ':' + script[0].op);
+    if (script[0].op === 'ontouch') this.touchCount++;
+    this.g.event({ type: 'start', sprite: sp.def.id, hat: script[0].op, color: script[0].arg });
+    const els = this.g.blockEls(sp.def.id, idx);
+    const mark = (j, on) => els[j] && els[j].classList.toggle('run', on);
+    mark(0, true);
+    try {
+      let j = 1;
+      while (j < script.length && alive()) {
+        const b = script[j];
+        mark(j, true);
+        if (b.op === 'forever') { mark(j, false); j = 1; await this.tick(); continue; }
+        if (b.op === 'stopmine') { // alle anderen Programme dieser Figur anhalten
+          for (const k of [...this.threads.keys()]) if (k !== key && k.startsWith(sp.def.id + ':')) { this.threads.delete(k); this.g.blockEls(sp.def.id, +k.split(':')[1]).forEach(e => e && e.classList.remove('run')); }
+        }
+        await this.exec(sp, b, alive);
+        mark(j, false);
+        j++;
+      }
+    } finally {
+      els.forEach(e => e && e.classList.remove('run'));
+      if (this.threads.get(key) === token) this.threads.delete(key);
+      // im freien Spiel wie ScratchJr: berührt die Figur danach immer noch, startet das Programm erneut
+      if (script[0].op === 'ontouch' && this.level.free && this.touchPrev) this.touchPrev.set(sp, false);
+      if (token.gen === this.gen) { this.active--; if (this.active === 0) this.g.idle(); }
+    }
+  }
+  tick() { return sleep(TICK); }
+  async move(sp, dx, dy, alive) {
+    let dist = Math.hypot(dx, dy); const ux = dx / dist, uy = dy / dist;
+    while (dist > 0 && alive()) {
+      const step = Math.min(dist, 2 * sp.speed);
+      sp.x += ux * step; sp.y += uy * step; dist -= step;
+      if (sp.x > 480) sp.x -= 480; if (sp.x < 0) sp.x += 480;
+      if (sp.y > 360) sp.y -= 360; if (sp.y < 0) sp.y += 360;
+      this.g.place(sp); await this.tick();
+    }
+  }
+  async exec(sp, b, alive) {
+    const n = Number(b.arg);
+    switch (b.op) {
+      case 'forward': sp.flip = false; return this.move(sp, n * 24, 0, alive);
+      case 'back': sp.flip = true; return this.move(sp, -n * 24, 0, alive);
+      case 'up': return this.move(sp, 0, -n * 24, alive);
+      case 'down': return this.move(sp, 0, n * 24, alive);
+      case 'hop': {
+        const list = [48, 30, 22, 14, 6, 0, -6, -14, -22, -30, -48];
+        for (const v of list) { if (!alive()) return; sp.y -= v / 5 * n; this.g.place(sp); await this.tick(); }
+        return;
+      }
+      case 'home': this.g.goHome(sp); return this.tick();
+      case 'wait': return sleep(n * 100);
+      case 'setspeed': sp.speed = Math.pow(2, n); return this.tick();
+      case 'show': sp.shown = true; this.g.place(sp); return sleep(200);
+      case 'hide': sp.shown = false; this.g.place(sp); return sleep(200);
+      case 'grow': case 'shrink': {
+        let left = n * 0.05; const dir = b.op === 'grow' ? 1 : -1;
+        while (left > 0 && alive()) { const st = Math.min(left, 0.004 * sp.speed); sp.s = Math.max(0.05, sp.s + dir * st); left -= st; this.g.place(sp); await this.tick(); }
+        return;
+      }
+      case 'say': {
+        const ticks = Math.max(30, Math.round(String(b.arg).length / 8) * 30);
+        this.g.bubble(sp, b.arg);
+        for (let t = 0; t < ticks && alive(); t++) await this.tick();
+        this.g.bubble(sp, null);
+        return;
+      }
+      case 'message': {
+        const receivers = this.g.sprites.filter(r => this.scriptsOf(r).some(({ s }) => s[0].op === 'onmessage' && s[0].arg === b.arg));
+        await this.g.flyLetter(sp, receivers, b.arg, this.level.free ? 7 : 18);
+        if (!alive()) return;
+        await this.trigger(r => receivers.includes(r) ? r : null, s => s[0].op === 'onmessage' && s[0].arg === b.arg);
+        return this.tick();
+      }
+    }
+  }
+}
+
+// ---------------- Spiel ----------------
+class Game {
+  constructor(root) {
+    this.root = root; this.done = new Set(store.get('td-done', [])); this.idx = Math.min(store.get('td-level', 0), LEVELS.length - 1);
+    this.rt = new Runtime(this); this.fails = 0; this.won = false;
+    window.addEventListener('resize', () => this.fit());
+  }
+  get level() { return this.lv; }
+
+  startScreen() {
+    this.root.replaceChildren(h('div', { class: 'start' }, h('div', { class: 'card' },
+      h('div', { class: 'row' }, h('img', { src: `${A}sprites/Boy1.svg`, alt: '' }),
+        h('div', { class: 'mini big-mini' }, blockEl({ op: 'ontouch' })), h('img', { src: `${A}sprites/Apple.svg`, alt: '', style: 'height:60px' })),
+      h('h2', {}, 'Berührungs-Detektive'),
+      h('p', {}, `${LEVELS.length} Rätsel rund um Berührung`),
+      h('button', { class: 'big', onclick: () => this.load(this.idx) }, 'Los geht’s! ▶'))));
+  }
+
+  load(i) {
+    this.rt.stop(); this.idx = i; store.set('td-level', i); this.fails = 0; this.won = false;
+    this.lv = clone(LEVELS[i]);
+    this.lv.goal = LEVELS[i].goal; this.lv.check = LEVELS[i].check;
+    this.chosen = {}; for (const sp of this.lv.sprites) if (sp.choose) this.chosen[sp.id] = [];
+    this.render();
+    this.rt.reset();
+  }
+
+  render() {
+    const lv = this.lv;
+    const dots = h('div', { class: 'dots' }, LEVELS.map((_, k) =>
+      h('button', { class: 'dot' + (this.done.has(k) ? ' done' : '') + (k === this.idx ? ' cur' : ''), 'aria-label': `Level ${k + 1}`, onclick: () => this.load(k) }, String(k + 1))));
+    const top = h('div', { class: 'top' }, h('div', { class: 'brand' }, h('img', { src: `${A}icons/Bump.svg`, alt: '' }), h('span', {}, 'Berührungs-Detektive')), dots);
+    const task = h('div', { class: 'task' }, h('div', { class: 'num' }, String(this.idx + 1)),
+      h('div', { class: 'txt' }, h('h1', {}, lv.bugIcon ? '🐞 ' + lv.title : lv.title), stepsEl(lv.steps)));
+
+    // Bühne
+    this.countEl = null;
+    this.stageBox = h('div', { class: 'stagebox' });
+    this.stageEl = h('div', { class: 'stage' }, h('img', { class: 'bg', src: `${A}bg/${lv.bg}.svg`, alt: '' }));
+    this.stageBox.append(this.stageEl);
+    this.sprites = lv.sprites.map(def => {
+      const [w, hh] = SIZE[def.img];
+      const el = h('div', { class: 'spr', style: `width:${w}px;height:${hh}px` }, h('img', { src: `${A}sprites/${def.img}.svg`, alt: def.name }));
+      const sp = { def, el, w, h: hh };
+      if (def.scripts.some(s => s[0] && s[0].op === 'onclick')) {
+        el.classList.add('tap'); el.setAttribute('role', 'button'); el.setAttribute('aria-label', def.name);
+        el.addEventListener('pointerdown', e => { e.preventDefault(); this.onTap(sp); });
+      }
+      this.stageEl.append(el);
+      return sp;
+    });
+    const flagBtn = h('button', { class: 'big go' + (lv.flag ? '' : ' hide'), 'aria-label': 'Grüne Fahne', onclick: () => { this.rt.flag(); } },
+      h('img', { src: `${A}icons/greenFlag.svg`, alt: '' }));
+    const stopBtn = h('button', { class: 'big stop', 'aria-label': 'Zurücksetzen', onclick: () => { this.rt.reset(); } },
+      svgIcon('<path d="M12 4a8 8 0 1 0 7.7 10h-2.1A6 6 0 1 1 12 6c1.7 0 3.1.7 4.2 1.8L13 11h7V4l-2.4 2.4A8 8 0 0 0 12 4z" fill="#4a86c5"/>'));
+    const controls = h('div', { class: 'controls' }, flagBtn, stopBtn,
+      lv.count ? (this.countEl = h('div', { class: 'count' })) : null,
+      lv.tapHint ? h('div', { class: 'hint-tap' }, '👆 Tippe auf die Pfeile auf der Bühne') : null);
+
+    // Programme
+    this.scriptsEl = h('div', { class: 'scripts' });
+    this.renderScripts();
+    const right = h('div', { class: 'right' }, this.scriptsEl);
+    if (lv.palette) { this.paletteEl = h('div', { class: 'palette' }); this.renderPalette(); right.append(this.paletteEl); }
+    else this.paletteEl = null;
+
+    this.root.replaceChildren(h('div', { class: 'app' }, top, task,
+      h('div', { class: 'work' }, h('div', { class: 'left' }, this.stageBox, controls), right)));
+    this.fit();
+    if (window.ResizeObserver) { this.ro && this.ro.disconnect(); this.ro = new ResizeObserver(() => this.fit()); this.ro.observe(this.stageBox); }
+  }
+
+  fit() { if (!this.stageBox) return; const s = this.stageBox.clientWidth / 480; this.stageEl.style.transform = `scale(${s})`; }
+
+  renderScripts() {
+    const lv = this.lv, ids = lv.order || lv.sprites.map(s => s.id);
+    this.blockMap = {};
+    this.scriptsEl.replaceChildren(...ids.map(id => lv.sprites.find(s => s.id === id)).filter(def => def.scripts.length).map(def => {
+      const strips = def.scripts.map((script, i) => {
+        const els = script.map(b => {
+          const el = blockEl(b, { onEdit: (blk, dropEl) => this.pickColor(blk, dropEl) });
+          if (b.bug) el.classList.add('buggy');
+          if (b.placed) { el.classList.add('placed'); el.addEventListener('click', () => this.unplace(def, i, script.indexOf(b))); }
+          return el;
+        });
+        this.blockMap[def.id + ':' + i] = els;
+        const strip = h('div', { class: 'strip' }, els);
+        if (def.choose) {
+          strip.classList.add('choosable'); strip.setAttribute('role', 'button'); strip.tabIndex = 0;
+          if (this.chosen[def.id].includes(i)) strip.classList.add('chosen');
+          strip.addEventListener('click', () => this.toggleChoose(def.id, i, strip));
+        }
+        return strip;
+      });
+      return h('div', { class: 'srow', 'data-sprite': def.id },
+        h('div', { class: 'who' }, h('img', { src: `${A}sprites/${def.img}.svg`, alt: '' }), def.name),
+        h('div', { class: 'strips' }, strips));
+    }));
+    const next = this.scriptsEl.querySelector('.blk.slot'); if (next) next.classList.add('next');
+  }
+  blockEls(id, i) { return this.blockMap[id + ':' + i] || []; }
+
+  renderPalette() {
+    const used = new Set(this.lv.sprites.flatMap(s => s.scripts.flat()).filter(b => b.placed).map(b => b.palIdx));
+    this.paletteEl.replaceChildren(h('div', { class: 'label' }, 'Tippe auf einen Block:'),
+      ...this.lv.palette.map((b, k) => {
+        const btn = h('button', { class: 'pal-block' + (used.has(k) ? ' used' : ''), 'aria-label': blockName(b), onclick: () => this.putBlock(k) }, blockEl(b));
+        return btn;
+      }));
+  }
+
+  putBlock(k) {
+    for (const def of this.lv.sprites) for (const script of def.scripts) {
+      const j = script.findIndex(b => b.slot);
+      if (j >= 0) {
+        script[j] = Object.assign(clone(this.lv.palette[k]), { placed: true, palIdx: k }); this.rt.reset(); this.renderScripts(); this.renderPalette(); return;
+      }
+    }
+  }
+  unplace(def, i, j) { def.scripts[i][j] = { slot: true }; this.rt.reset(); this.renderScripts(); this.renderPalette(); }
+  toggleChoose(id, i, strip) {
+    const c = this.chosen[id], k = c.indexOf(i);
+    if (k >= 0) c.splice(k, 1); else c.push(i);
+    strip.classList.toggle('chosen', k < 0); this.rt.reset();
+  }
+
+  pickColor(b, dropEl) {
+    document.querySelectorAll('.pop').forEach(p => p.remove());
+    const close = () => { pop.remove(); document.removeEventListener('pointerdown', outside, true); };
+    const outside = e => { if (!pop.contains(e.target)) close(); };
+    const pop = h('div', { class: 'pop', role: 'dialog', 'aria-label': 'Farbe wählen' }, COLORS.map(c =>
+      h('button', { 'aria-label': COLOR_DE[c], onclick: () => { b.arg = c; close(); this.rt.reset(); this.renderScripts(); } },
+        h('img', { src: `${A}icons/${b.op === 'onmessage' ? 'LetterGet_' : 'LetterSend_'}${c}.svg`, alt: '' }))));
+    document.body.append(pop);
+    const r = dropEl.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+    pop.style.left = Math.max(8, Math.min(innerWidth - pw - 8, r.left + r.width / 2 - pw / 2)) + 'px';
+    pop.style.top = (r.bottom + 8 + ph < innerHeight ? r.bottom + 8 : Math.max(8, r.top - ph - 8)) + 'px';
+    setTimeout(() => document.addEventListener('pointerdown', outside, true), 0);
+  }
+
+  // Bühne
+  goHome(sp) {
+    const d = sp.def; Object.assign(sp, { x: d.x, y: d.y, s: d.s, shown: !d.hidden, flip: false, speed: 2 });
+    this.bubble(sp, null); this.place(sp);
+  }
+  place(sp) {
+    sp.el.style.transform = `translate(${sp.x - sp.w / 2}px, ${sp.y - sp.h / 2}px) scale(${sp.flip ? -sp.s : sp.s}, ${sp.s})`;
+    sp.el.style.opacity = sp.shown ? 1 : 0;
+    sp.el.style.pointerEvents = sp.shown ? '' : 'none';
+    if (sp.bubbleEl) this.posBubble(sp);
+  }
+  bubble(sp, text) {
+    if (sp.bubbleEl) { sp.bubbleEl.remove(); sp.bubbleEl = null; }
+    if (text == null) return;
+    sp.bubbleEl = h('div', { class: 'bubble' }, text); this.stageEl.append(sp.bubbleEl); this.posBubble(sp);
+  }
+  posBubble(sp) {
+    const top = sp.y - sp.h * sp.s / 2 - 10, bw = sp.bubbleEl.offsetWidth || 100;
+    sp.bubbleEl.style.left = Math.max(bw / 2 + 4, Math.min(480 - bw / 2 - 4, sp.x)) + 'px';
+    sp.bubbleEl.style.top = Math.max(sp.bubbleEl.offsetHeight + 4, top) + 'px';
+  }
+  clearBubbles() { (this.sprites || []).forEach(sp => this.bubble(sp, null)); }
+  clearRunMarks() { this.scriptsEl && this.scriptsEl.querySelectorAll('.run').forEach(e => e.classList.remove('run')); }
+  async flyLetter(from, receivers, color, speed = 18) {
+    const targets = receivers.length ? receivers : [null];
+    await Promise.all(targets.map(async to => {
+      const el = h('div', { class: 'flyletter' }, h('img', { src: `${A}icons/LetterSend_${color}.svg`, alt: '' }));
+      this.stageEl.append(el);
+      const x0 = from.x, y0 = from.y - from.h * from.s / 2;
+      const x1 = to ? to.x : x0 + 40, y1 = to ? to.y - to.h * to.s / 4 : y0 - 60;
+      const steps = to ? speed : 14;
+      for (let t = 0; t <= steps; t++) {
+        const k = t / steps, arc = Math.sin(Math.PI * k) * 50;
+        el.style.left = (x0 + (x1 - x0) * k) + 'px'; el.style.top = (y0 + (y1 - y0) * k - arc) + 'px';
+        if (!to) el.style.opacity = 1 - k;
+        await sleep(TICK);
+      }
+      el.remove();
+    }));
+  }
+
+  // Ereignisse & Bewertung
+  onTap(sp) {
+    if (this.overlay) return;
+    const lv = this.lv;
+    if (lv.choose && lv.sprites.some(s => s.choose && this.chosen[s.id].length === 0)) { this.pulse(lv.hint); return; }
+    if (this.rt.active && !lv.free) this.rt.stop();
+    if (!lv.free) this.rt.started = new Set();
+    this.rt.tap(sp);
+  }
+  event(ev) {
+    if (this.countEl) this.updateCount();
+    if (this.won || !this.lv.goal) return;
+    const r = this.lv.goal(ev, this.rt);
+    if (r === 'fail') setTimeout(() => this.fail(), 900); else if (r) this.win();
+  }
+  updateCount() {
+    const n = Math.min(this.rt.touchCount, this.lv.count);
+    this.countEl.replaceChildren(...Array.from({ length: this.lv.count }, (_, k) =>
+      h('img', { src: `${A}sprites/Apple.svg`, alt: '', class: k < n ? 'got' : '' })));
+  }
+  idle() {
+    if (this.won || this.lv.free) return;
+    if (this.lv.check) { if (this.lv.check(this.rt)) return this.win(); return this.fail(); }
+    // Fahne gelaufen, aber Ziel nicht erreicht
+    if (this.lv.flagIsSetup && this.rt.lastAction === 'flag') return; // erst Fahne, dann Knopf
+    setTimeout(() => { if (!this.won && !this.rt.active) this.fail(); }, 300);
+  }
+  pulse(sel) {
+    if (!sel) return;
+    document.querySelectorAll(sel).forEach(e => { e.classList.remove('hintpulse'); void e.offsetWidth; e.classList.add('hintpulse'); });
+  }
+  win() {
+    this.won = true;
+    setTimeout(() => {
+      this.done.add(this.idx); store.set('td-done', [...this.done]);
+      const last = this.idx === LEVELS.length - 1;
+      const msg = last ? 'Alle Rätsel gelöst!' : ['Super gemacht!', 'Toll!', 'Klasse!', 'Prima!'][this.idx % 4];
+      this.showOverlay(h('div', { class: 'card' },
+        h('div', { class: 'stars' }, h('span', {}, '★'), h('span', {}, '★'), h('span', {}, '★')),
+        h('h2', {}, last ? 'Geschafft!' : msg),
+        h('p', {}, this.lv.win || 'Berührt!'),
+        h('button', { class: 'big', onclick: () => { this.hideOverlay(); if (last) { this.idx = 0; this.startScreen(); } else this.load(this.idx + 1); } },
+          last ? 'Nochmal von vorn' : 'Weiter ▶')));
+    }, 1800);
+  }
+  fail() {
+    if (this.won || this.overlay) return;
+    this.fails++;
+    const msg = 'Hmm, noch nicht. Schau genau hin!';
+    this.showOverlay(h('div', { class: 'card' },
+      h('div', { class: 'bug' }, '🐞'), h('h2', {}, 'Noch nicht!'), h('p', {}, 'Schau genau hin.'),
+      h('button', { class: 'big again', onclick: () => { this.hideOverlay(); this.rt.reset(); if (this.fails >= 2) this.pulse(this.lv.hint); } }, 'Nochmal ↺')));
+  }
+  showOverlay(card) { this.overlay = h('div', { class: 'overlay' }, card); document.body.append(this.overlay); card.querySelector('button').focus(); }
+  hideOverlay() { this.overlay && this.overlay.remove(); this.overlay = null; }
+}
+function stepsEl(steps) {
+  const icon = tok => {
+    const [k, c] = tok.split(':');
+    if (k === 'drop') return h('img', { class: 'ic drop', src: `${A}blocks/dropdown.svg`, alt: '' });
+    if (k === 'links' || k === 'rechts') return h('img', { class: 'ic', src: `${A}sprites/${k === 'links' ? 'Links' : 'Rechts'}.svg`, alt: k });
+    const b = { flag: { op: 'onflag' }, send: { op: 'message', arg: c }, get: { op: 'onmessage', arg: c }, forward: { op: 'forward', arg: 1 },
+      down: { op: 'down', arg: 1 }, home: { op: 'home' }, back: { op: 'back', arg: 1 }, bump: { op: 'ontouch' }, tap: { op: 'onclick' },
+      hide: { op: 'hide' }, show: { op: 'show' } }[k];
+    return h('span', { class: 'mini' }, blockEl(b));
+  };
+  return h('ol', { class: 'steps' }, steps.map(st => h('li', {}, h('span', {},
+    st.split(/(\{[^}]+\})/).map(part => part.startsWith('{') ? icon(part.slice(1, -1)) : part)))));
+}
+function svgIcon(inner) { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); s.innerHTML = inner; return s; }
+
+const game = new Game(document.getElementById('root'));
+game.startScreen();
+})();
+</script>

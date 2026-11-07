@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="180px" height="170px" viewBox="0 0 180 170">
+<g id="Kater">
+	<path fill="#F7A23B" stroke="#7A3E00" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="M30,100 C10,90 4,62 16,44 C22,36 32,40 28,48 C20,62 26,80 40,88 Z"/>
+	<path fill="#F7A23B" stroke="#7A3E00" stroke-width="4" stroke-linejoin="round" d="M38,104 L34,150 C34,158 50,158 50,150 L56,112 Z"/>
+	<path fill="#F7A23B" stroke="#7A3E00" stroke-width="4" stroke-linejoin="round" d="M58,108 L58,152 C58,160 74,160 74,152 L78,112 Z"/>
+	<path fill="#F7A23B" stroke="#7A3E00" stroke-width="4" stroke-linejoin="round" d="M96,108 L94,152 C94,160 110,160 110,152 L114,108 Z"/>
+	<path fill="#F7A23B" stroke="#7A3E00" stroke-width="4" stroke-linejoin="round" d="M116,104 L118,150 C118,158 134,158 134,150 L134,100 Z"/>
+	<ellipse fill="#F7A23B" stroke="#7A3E00" stroke-width="4" cx="84" cy="96" rx="56" ry="30"/>
+	<ellipse fill="#FFE2B8" cx="92" cy="108" rx="32" ry="14"/>
+	<path fill="none" stroke="#D9761A" stroke-width="5" stroke-linecap="round" d="M60,70 L66,84 M76,67 L80,82 M92,67 L94,80"/>
+	<path fill="#F7A23B" stroke="#7A3E00" stroke-width="4" stroke-linejoin="round" d="M118,40 L122,8 L142,30 Z"/>
+	<path fill="#F7A23B" stroke="#7A3E00" stroke-width="4" stroke-linejoin="round" d="M150,30 L168,8 L170,42 Z"/>
+	<path fill="#FFB3B3" d="M123,34 L125,17 L136,30 Z"/>
+	<path fill="#FFB3B3" d="M155,30 L165,18 L166,37 Z"/>
+	<circle fill="#F7A23B" stroke="#7A3E00" stroke-width="4" cx="144" cy="56" r="32"/>
+	<ellipse fill="#FFE2B8" cx="152" cy="70" rx="18" ry="12"/>
+	<ellipse fill="#FFFFFF" stroke="#7A3E00" stroke-width="2" cx="136" cy="48" rx="7" ry="9"/>
+	<ellipse fill="#FFFFFF" stroke="#7A3E00" stroke-width="2" cx="160" cy="48" rx="7" ry="9"/>
+	<circle fill="#2B2B2B" cx="138" cy="50" r="4.5"/>
+	<circle fill="#2B2B2B" cx="162" cy="50" r="4.5"/>
+	<circle fill="#FFFFFF" cx="139.5" cy="48" r="1.6"/>
+	<circle fill="#FFFFFF" cx="163.5" cy="48" r="1.6"/>
+	<path fill="#E8577A" stroke="#7A3E00" stroke-width="1.5" stroke-linejoin="round" d="M146,62 L156,62 L151,68 Z"/>
+	<path fill="none" stroke="#7A3E00" stroke-width="2.5" stroke-linecap="round" d="M151,68 C150,75 143,76 140,72 M151,68 C152,75 159,76 162,72"/>
+	<path fill="none" stroke="#7A3E00" stroke-width="1.8" stroke-linecap="round" d="M136,66 L116,62 M136,70 L116,72 M166,66 L178,61 M166,70 L178,72"/>
+	<path fill="none" stroke="#D9761A" stroke-width="4" stroke-linecap="round" d="M140,27 L142,36 M148,26 L148,35"/>
+</g>
+</svg>
